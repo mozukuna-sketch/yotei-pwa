@@ -1,0 +1,1515 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#3B5BDB">
+<meta name="color-scheme" content="light dark">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="予定帳">
+<title>ワンタップ予定帳</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2F5F7; --surface:#FFFFFF; --ink:#16222E; --muted:#66727F; --line:#DDE3E8;
+  --accent:#3B5BDB; --accent-ink:#FFFFFF; --sun:#D6336C; --sat:#3B5BDB;
+  --shadow:0 -8px 28px rgba(22,34,46,.10);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1720; --surface:#18222D; --ink:#E8EEF3; --muted:#93A0AD; --line:#27333F;
+    --accent:#8CA0F7; --accent-ink:#0F1720; --sun:#F06595; --sat:#8CA0F7;
+    --shadow:0 -8px 28px rgba(0,0,0,.45);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1720; --surface:#18222D; --ink:#E8EEF3; --muted:#93A0AD; --line:#27333F;
+  --accent:#8CA0F7; --accent-ink:#0F1720; --sun:#F06595; --sat:#8CA0F7;
+  --shadow:0 -8px 28px rgba(0,0,0,.45);
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic","Noto Sans JP",Meiryo,sans-serif;
+  font-weight:500; line-height:1.5;
+}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+.boot{padding:48px 20px;text-align:center;color:var(--muted)}
+.fatal{max-width:420px;margin:48px auto;padding:0 20px;text-align:center}
+
+.app{max-width:720px;margin:0 auto;padding:14px 14px calc(var(--dock-h,160px) + 28px)}
+.note{margin:0 0 10px;padding:8px 12px;border-radius:10px;background:var(--surface);border:1px solid var(--line);font-size:13px;color:var(--muted)}
+.note.warn{border-color:var(--sun);color:var(--ink)}
+
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.ttl{display:flex;align-items:baseline;gap:8px}
+.mt{font-size:40px;font-weight:900;letter-spacing:-.02em;line-height:1}
+.yt{font-size:15px;color:var(--muted);font-weight:700}
+.nav{display:flex;align-items:center;gap:6px}
+.nav button{
+  min-width:44px;height:44px;border-radius:22px;border:1px solid var(--line);background:var(--surface);
+  font-size:22px;line-height:1;font-weight:700;padding:0 14px
+}
+.nav .today-btn{font-size:14px;font-weight:700}
+.nav button:active{transform:scale(.96)}
+
+.dow,.grid{display:grid;grid-template-columns:repeat(7,1fr)}
+.dow{margin-bottom:2px}
+.dow span{text-align:center;font-size:12.5px;font-weight:700;color:var(--muted);padding:4px 0}
+.dow span:first-child{color:var(--sun)}
+.dow span:last-child{color:var(--sat)}
+.grid{gap:2px}
+.cell{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  min-height:58px;padding:5px 2px 4px;border:0;border-radius:12px;background:transparent;
+}
+.cell.out{opacity:.42}
+.cell .num{
+  width:28px;height:28px;border-radius:14px;display:grid;place-items:center;
+  font-size:15px;font-weight:700;font-variant-numeric:tabular-nums
+}
+.cell .num.sun{color:var(--sun)}
+.cell .num.sat{color:var(--sat)}
+.cell.tod .num{background:var(--accent);color:var(--accent-ink)}
+.cell.sel{background:var(--surface);box-shadow:inset 0 0 0 2px var(--accent)}
+.mks{display:flex;flex-wrap:wrap;justify-content:center;gap:3px;min-height:7px;max-width:100%}
+.mk{width:7px;height:7px;border-radius:50%;background:var(--c)}
+.mk .t{display:none}
+.more{font-size:10px;color:var(--muted);line-height:7px}
+
+@media (min-width:600px){
+  .cell{min-height:92px;align-items:stretch;padding:6px 5px}
+  .cell .num{align-self:flex-start}
+  .mks{flex-direction:column;flex-wrap:nowrap;justify-content:flex-start;gap:2px;align-items:stretch}
+  .mk{width:auto;height:auto;border-radius:5px;padding:1px 5px;background:color-mix(in srgb,var(--c) 22%,transparent);border-left:3px solid var(--c)}
+  .mk .t{display:block;font-size:11.5px;text-align:left;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .more{font-size:11px;text-align:left;line-height:1.2}
+}
+
+.day{margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px 14px 8px}
+.day-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+.day-h h2{margin:0;font-size:20px;font-weight:900}
+.day-h .tag{font-size:12px;font-weight:700;color:var(--accent);margin-left:6px}
+.link{border:0;background:transparent;color:var(--accent);font-weight:700;font-size:14px;padding:10px 4px;min-height:44px}
+.evs{list-style:none;margin:0;padding:0}
+.ev{
+  width:100%;display:grid;grid-template-columns:5px 8em 1fr;align-items:center;gap:12px;
+  text-align:left;border:0;border-top:1px solid var(--line);background:transparent;padding:12px 2px;min-height:52px
+}
+.evs li:first-child .ev{border-top:0}
+.ev .bar{align-self:stretch;border-radius:3px;background:var(--c)}
+.ev .et{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums;font-weight:700}
+.ev .en{font-size:16px;font-weight:700;overflow-wrap:anywhere}
+.empty{padding:14px 2px 16px;color:var(--muted);font-size:14px}
+
+.dock{
+  position:fixed;left:0;right:0;bottom:0;z-index:5;
+  background:var(--surface);border-top:1px solid var(--line);box-shadow:var(--shadow);
+  padding:10px 0 calc(10px + env(safe-area-inset-bottom,0px))
+}
+.dock-in{max-width:720px;margin:0 auto;padding:0 14px}
+.dock-l{font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px}
+.chips{
+  display:grid;grid-auto-flow:column;grid-template-rows:repeat(2,minmax(52px,auto));grid-auto-columns:max-content;
+  gap:8px;overflow-x:auto;padding:2px 0 6px;scroll-snap-type:x proximity;overscroll-behavior-x:contain
+}
+.chip{
+  position:relative;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;
+  min-width:96px;padding:6px 14px 6px 18px;border-radius:14px;border:1px solid var(--line);background:var(--bg);
+  text-align:left;scroll-snap-align:start;transition:transform .08s
+}
+.chip::before{content:"";position:absolute;left:7px;top:9px;bottom:9px;width:4px;border-radius:2px;background:var(--c,var(--muted))}
+.chip .w{font-size:16px;font-weight:900;line-height:1.25}
+.chip .tm{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;line-height:1.3}
+.chip:active{transform:scale(.96)}
+.chip.edit{border-style:dashed;--c:var(--muted);justify-content:center}
+.chip.edit .w{font-size:14px;font-weight:700;color:var(--muted)}
+.chip.flash{animation:flash .5s ease-out}
+@keyframes flash{from{box-shadow:0 0 0 0 var(--c)}to{box-shadow:0 0 0 10px transparent}}
+@media (prefers-reduced-motion:reduce){
+  .chip.flash{animation:none}
+  .chip,.nav button{transition:none}
+  .chip:active,.nav button:active{transform:none}
+}
+
+.toast{
+  position:absolute;left:14px;right:14px;bottom:calc(100% + 10px);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  max-width:692px;margin:0 auto;
+  background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:14px;font-size:15px;font-weight:700
+}
+.toast button{border:0;background:transparent;color:inherit;font-weight:900;text-decoration:underline;padding:8px 4px;min-height:40px}
+.dock-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.dock-top .dock-l{margin:0}
+.fold{min-height:40px;padding:0 14px;border-radius:20px;border:1px solid var(--line);background:var(--bg);font-size:13px;font-weight:700;color:var(--muted);flex:none}
+.tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:8px;padding-bottom:2px}
+.tab{flex:none;min-height:38px;padding:0 14px;border-radius:19px;border:1px solid var(--line);background:var(--bg);font-size:13.5px;font-weight:700;color:var(--muted)}
+.tab[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.dock.min .tabs,.dock.min .chips{display:none}
+.mk.cs,.mk.ce{width:auto;height:auto;max-width:100%;overflow:hidden;border-radius:4px;padding:0 3px;font-size:9.5px;line-height:1.4;font-weight:700;white-space:nowrap;background:color-mix(in srgb,var(--c) 24%,transparent);border-left:3px solid var(--c)}
+.mk .s{display:none}
+.mk.cs .s,.mk.ce .s{display:inline}
+@media (min-width:600px){.mk.cs .s,.mk.ce .s{display:none}.mk.cs,.mk.ce{padding:1px 5px;font-size:11.5px;white-space:normal;overflow:visible}}
+.cat{display:inline-block;margin-left:8px;padding:0 8px;border-radius:10px;background:var(--bg);border:1px solid var(--line);font-size:11.5px;color:var(--muted);font-weight:700;vertical-align:middle}
+.rows li.grp{display:block;border-top:0;padding:12px 0 2px;font-size:13px;font-weight:700;color:var(--muted)}
+.rows li.grp+li{border-top:0}
+.sug{display:flex;gap:6px;flex-wrap:wrap;margin:-8px 0 14px}
+.sug button{min-height:38px;padding:0 14px;border-radius:19px;border:1px solid var(--line);background:var(--bg);font-size:13.5px;font-weight:700}
+.sum{margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px}
+.sum h2{margin:0 0 10px;font-size:16px;font-weight:900}
+.sum ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.sum li{padding:6px 12px;border-radius:14px;background:var(--bg);border:1px solid var(--line);font-size:14px;font-weight:700}
+.sum li b{font-variant-numeric:tabular-nums;margin-left:8px}
+
+dialog{
+  border:0;padding:0;background:var(--surface);color:var(--ink);
+  width:100%;max-width:560px;margin:auto auto 0;border-radius:22px 22px 0 0;max-height:90vh;overflow:auto
+}
+dialog::backdrop{background:rgba(10,16,24,.55)}
+.sheet{padding:18px 18px calc(20px + env(safe-area-inset-bottom,0px))}
+.sh-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.sh-h h2{margin:0;font-size:20px;font-weight:900}
+.x{border:0;background:transparent;font-size:28px;line-height:1;width:44px;height:44px;border-radius:22px;color:var(--muted)}
+.hint{margin:0 0 12px;font-size:13.5px;color:var(--muted)}
+.rows{list-style:none;margin:0 0 14px;padding:0}
+.rows li{display:flex;align-items:center;gap:8px;border-top:1px solid var(--line);padding:6px 0}
+.rows li:first-child{border-top:0}
+.rows .main{flex:1;display:flex;align-items:center;gap:10px;border:0;background:transparent;text-align:left;min-height:48px;padding:4px 2px;min-width:0}
+.rows .dot{width:12px;height:12px;border-radius:50%;background:var(--c);flex:none}
+.rows .rt{display:block;font-weight:900;font-size:16px}
+.rows .rs{display:block;font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv{border:1px solid var(--line);background:var(--bg);width:40px;height:40px;border-radius:10px;font-size:14px;color:var(--muted)}
+.mv:disabled{opacity:.35}
+
+.f{display:block;margin-bottom:14px}
+.f>span{display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:5px}
+.f input[type=text],.f input[type=time],.f input[type=date],.f input[type=password],.f select{
+  width:100%;min-height:48px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);font-size:16px
+}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sw{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.sw label{position:relative}
+.sw input{position:absolute;opacity:0;inset:0;width:100%;height:100%;margin:0;cursor:pointer}
+.sw i{display:block;width:40px;height:40px;border-radius:50%;background:var(--c);border:3px solid var(--surface);box-shadow:0 0 0 1px var(--line)}
+.sw input:checked+i{box-shadow:0 0 0 3px var(--ink)}
+.sw input:focus-visible+i{outline:3px solid var(--accent);outline-offset:3px}
+.err{min-height:1.4em;margin:0 0 8px;color:var(--sun);font-size:14px;font-weight:700}
+.btns{display:flex;gap:10px;flex-wrap:wrap}
+.btn{min-height:48px;padding:0 18px;border-radius:14px;border:1px solid var(--line);background:var(--bg);font-weight:700;font-size:16px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--sun);margin-left:auto}
+.btn.wide{width:100%}
+.sp{height:10px}
+.foot{margin-top:18px;text-align:center}
+.sec{border-top:1px solid var(--line);padding:14px 0 6px;margin-top:8px}
+.sec h3{margin:0 0 6px;font-size:16px;font-weight:900}
+.stack{display:grid;gap:10px;margin-bottom:8px}
+#stState{white-space:pre-line}
+.bknote{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.bknote .link{padding:6px;min-height:40px}
+.chk{display:flex;align-items:center;gap:10px;min-height:44px;font-weight:700;font-size:15px;cursor:pointer}
+.chk input{width:22px;height:22px;margin:0;accent-color:var(--accent);flex:none}
+.chk.small{font-size:13px;color:var(--muted);min-height:36px}
+.hint.warnt{color:var(--sun);font-weight:700}
+.enc{margin-bottom:10px}
+select{font:inherit;color:inherit}
+.lockscr{position:fixed;inset:0;z-index:30;background:var(--bg);display:grid;place-items:center;
+  padding:calc(24px + env(safe-area-inset-top,0px)) 20px calc(24px + env(safe-area-inset-bottom,0px));overflow:auto}
+.lockbox{width:100%;max-width:360px;text-align:center}
+.lockbox h1{margin:8px 0 2px;font-size:24px;font-weight:900}
+.lockicon{border-radius:18px;display:block;margin:0 auto}
+.lockhint{margin:0 0 18px;color:var(--muted);font-weight:700}
+.lockbox .btn{margin-bottom:6px}
+.lockbox .f{text-align:left;margin-top:8px}
+</style>
+</head>
+<body>
+<div id="boot" class="boot">読み込み中…</div>
+
+<main id="app" class="app" hidden>
+  <p id="note" class="note" hidden></p>
+  <div id="bkNote" class="note warn bknote" hidden><span id="bkNoteT"></span><span><button id="bkNoteGo" type="button" class="link">バックアップする</button><button id="bkNoteLater" type="button" class="link">あとで</button></span></div>
+  <header class="top">
+    <div class="ttl"><span id="mTitle" class="mt"></span><span id="yTitle" class="yt"></span></div>
+    <div class="nav">
+      <button id="prev" type="button" aria-label="前の月">‹</button>
+      <button id="todayBtn" type="button" class="today-btn">今日</button>
+      <button id="next" type="button" aria-label="次の月">›</button>
+    </div>
+  </header>
+  <div class="dow" aria-hidden="true"><span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span></div>
+  <div id="grid" class="grid"></div>
+
+  <section class="day" aria-live="polite">
+    <div class="day-h">
+      <h2 id="dayTitle"></h2>
+      <button id="addOther" type="button" class="link">ほかの予定を追加</button>
+    </div>
+    <ul id="dayList" class="evs"></ul>
+  </section>
+<section id="sum" class="sum" hidden><h2 id="sumT"></h2><ul id="sumList"></ul></section>
+  <div class="foot"><button id="setBtn" type="button" class="link">設定・バックアップ</button></div>
+</main>
+
+<div id="dock" class="dock" hidden>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <div class="dock-in">
+    <div class="dock-top"><div id="dockLabel" class="dock-l"></div><button id="fold" type="button" class="fold" aria-expanded="true">ワードを最小化</button></div>
+    <div id="tabs" class="tabs" role="group" aria-label="種類で絞り込み"></div>
+    <div id="chips" class="chips"></div>
+  </div>
+</div>
+
+<dialog id="evDlg" aria-labelledby="evT">
+  <div class="sheet">
+    <div class="sh-h"><h2 id="evT">予定を編集</h2><button type="button" class="x" data-close aria-label="閉じる">×</button></div>
+    <label class="f"><span>予定の内容</span><input id="evTitle" type="text" maxlength="60" autocomplete="off"></label>
+    <label class="f"><span>種類(例: 仕事・健康。空欄でその他)</span><input id="evCat" type="text" maxlength="12" autocomplete="off"></label>
+    <div id="evSug" class="sug"></div>
+    <label class="f"><span>日付</span><input id="evDate" type="date"></label>
+    <div class="two">
+      <label class="f"><span>開始(空欄で終日)</span><input id="evStart" type="time"></label>
+      <label class="f"><span>終了(開始より前なら翌日)</span><input id="evEnd" type="time"></label>
+    </div>
+    <div id="evSw" class="sw" role="radiogroup" aria-label="色"></div>
+    <p id="evErr" class="err" role="alert"></p>
+    <div class="btns">
+      <button id="evSave" type="button" class="btn primary">保存</button>
+      <button type="button" class="btn" data-close>閉じる</button>
+      <button id="evDel" type="button" class="btn danger">削除</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="preDlg" aria-labelledby="preT">
+  <div class="sheet">
+    <div id="preList">
+      <div class="sh-h"><h2 id="preT">ワードの管理</h2><button type="button" class="x" data-close aria-label="閉じる">×</button></div>
+      <p class="hint">ワードをタップすると、決めた時間と内容で予定が入ります。並び順は画面下のワードと同じです。</p>
+      <ul id="preRows" class="rows"></ul>
+      <button id="preNew" type="button" class="btn primary wide">新しいワードを追加</button>
+    </div>
+    <div id="preForm" hidden>
+      <div class="sh-h"><h2 id="pfT">ワードを追加</h2><button type="button" class="x" id="pfBack" aria-label="一覧に戻る">‹</button></div>
+      <label class="f"><span>ワード(ボタンに表示)</span><input id="pfWord" type="text" maxlength="12" autocomplete="off" placeholder="例: ジム"></label>
+      <label class="f"><span>予定の内容(空欄ならワードと同じ)</span><input id="pfTitle" type="text" maxlength="60" autocomplete="off" placeholder="例: ジムで筋トレ"></label>
+      <div class="two">
+        <label class="f"><span>開始(空欄で終日)</span><input id="pfStart" type="time"></label>
+        <label class="f"><span>終了(開始より前なら翌日)</span><input id="pfEnd" type="time"></label>
+      </div>
+      <label class="f"><span>種類(例: 仕事・健康。空欄でその他)</span><input id="pfCat" type="text" maxlength="12" autocomplete="off"></label>
+      <div id="pfSug" class="sug"></div>
+      <div id="pfSw" class="sw" role="radiogroup" aria-label="色"></div>
+      <p id="pfErr" class="err" role="alert"></p>
+      <div class="btns">
+        <button id="pfSave" type="button" class="btn primary">保存</button>
+        <button id="pfCancel" type="button" class="btn">キャンセル</button>
+        <button id="pfDel" type="button" class="btn danger">削除</button>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<div id="lockScr" class="lockscr" hidden>
+  <div class="lockbox">
+    <img src="icon-192.png" alt="" width="72" height="72" class="lockicon">
+    <h1>ワンタップ予定帳</h1>
+    <p class="lockhint">ロックされています</p>
+    <button id="lkBio" type="button" class="btn primary wide">指紋・顔・画面ロックで開く</button>
+    <button id="lkPwToggle" type="button" class="link">パスワードで開く</button>
+    <div id="lkPwBox" hidden>
+      <label class="f"><span>回復用のパスワード</span><input id="lkPw" type="password" autocomplete="current-password" autocapitalize="off" spellcheck="false"></label>
+      <button id="lkPwGo" type="button" class="btn wide">開く</button>
+    </div>
+    <p id="lkMsg" class="hint" role="status"></p>
+  </div>
+</div>
+
+<dialog id="setDlg" aria-labelledby="setT">
+  <div class="sheet">
+    <div class="sh-h"><h2 id="setT">設定とバックアップ</h2><button type="button" class="x" data-close aria-label="閉じる">×</button></div>
+
+    <section class="sec">
+      <h3>アプリとして使う</h3>
+      <p class="hint">一度開いたあとは、通信なしでも使えます。予定とワードは、この端末のブラウザの中にだけ保存され、ほかの端末や人とは共有されません。</p>
+      <button id="instBtn" type="button" class="btn primary wide" hidden>ホーム画面に追加する</button>
+      <p class="hint">追加ボタンが出ないときは、ブラウザのメニューから「ホーム画面に追加」または「アプリをインストール」を選んでください。</p>
+      <p id="stState" class="hint"></p>
+    </section>
+
+    <section class="sec" id="lockSec">
+      <h3>生体認証で保護</h3>
+      <p class="hint">予定とワードを暗号化して保存し、指紋・顔、または端末の画面ロックで開くようにします。ロックを解かない限り、保存されたデータは読めません。</p>
+      <div id="lkOff">
+        <p class="hint">回復用のパスワードを決めてください。指紋や顔が使えなくなったとき(端末の入れ替えなど)に、このパスワードで開きます。</p>
+        <label class="f"><span>回復用のパスワード(8文字以上)</span><input id="lkNewPw" type="password" autocomplete="new-password" autocapitalize="off" spellcheck="false"></label>
+        <label class="f"><span>パスワードをもう一度</span><input id="lkNewPw2" type="password" autocomplete="new-password" autocapitalize="off" spellcheck="false"></label>
+        <p class="hint warnt">回復用のパスワードを忘れて、指紋や顔でも開けなくなると、予定は誰にも開けなくなります。始める前に、バックアップを書き出しておくことをおすすめします。</p>
+        <button id="lkEnable" type="button" class="btn primary wide">生体認証で保護を始める</button>
+      </div>
+      <div id="lkOn" hidden>
+        <p class="hint">保護: 有効(予定とワードは暗号化されています)</p>
+        <label class="f"><span>画面を離れてから、自動でロックするまでの時間</span>
+          <select id="lkDelay"><option value="0">すぐ</option><option value="1">1分後</option><option value="5">5分後</option></select></label>
+        <div class="stack">
+          <button id="lkNow" type="button" class="btn wide">いますぐロックする</button>
+          <button id="lkDisable" type="button" class="btn wide">保護をやめる</button>
+        </div>
+        <p class="hint">パスキーを入れ替えたいときや、回復用のパスワードを変えたいときは、いったん「保護をやめる」を押してから、もう一度始めてください。</p>
+      </div>
+      <p id="lkMsg2" class="hint" role="status"></p>
+    </section>
+
+    <section class="sec">
+      <h3>バックアップ</h3>
+      <p class="hint">予定とワードを1つのファイルに書き出します。端末を替えるときや、ブラウザのデータを消す前に保存してください。</p>
+      <p id="bkLast" class="hint"></p>
+      <div class="enc">
+        <label class="chk"><input id="encOn" type="checkbox" checked><span>パスワードで暗号化する(おすすめ)</span></label>
+        <div id="encBox">
+          <label class="f"><span>パスワード(8文字以上。長いほど安全です)</span><input id="encPw" type="password" autocomplete="new-password" autocapitalize="off" spellcheck="false"></label>
+          <label class="f"><span>パスワードをもう一度</span><input id="encPw2" type="password" autocomplete="new-password" autocapitalize="off" spellcheck="false"></label>
+          <label class="chk small"><input id="encShow" type="checkbox"><span>パスワードを表示する</span></label>
+          <p class="hint warnt">パスワードを忘れると、バックアップは誰にも開けません。パスワードはこのアプリに保存されません。パスワードマネージャーなどに控えておくと安心です。</p>
+        </div>
+        <p id="encPlainWarn" class="hint warnt" hidden>暗号化しないと、予定の内容がそのまま読める形で保存されます。</p>
+        <p id="encNone" class="hint" hidden>このブラウザや開き方では、暗号化を使えません(https:// で開く必要があります)。</p>
+      </div>
+      <div class="stack">
+        <button id="bkOut" type="button" class="btn wide">バックアップを書き出す</button>
+        <button id="bkIn" type="button" class="btn wide">バックアップを読み込む</button>
+      </div>
+      <input id="bkFile" type="file" accept=".json,application/json" hidden>
+      <div id="bkPassBox" hidden>
+        <p class="hint">このバックアップは暗号化されています。書き出したときのパスワードを入力してください。</p>
+        <label class="f"><span>パスワード</span><input id="bkPw" type="password" autocomplete="current-password" autocapitalize="off" spellcheck="false"></label>
+        <div class="stack">
+          <button id="bkDecrypt" type="button" class="btn primary wide">開く</button>
+          <button id="bkPassCancel" type="button" class="btn wide">キャンセル</button>
+        </div>
+      </div>
+      <div id="bkConfirm" hidden>
+        <p id="bkSum" class="hint"></p>
+        <div class="stack">
+          <button id="bkMerge" type="button" class="btn primary wide">いまの内容に追加して読み込む(おすすめ)</button>
+          <button id="bkReplace" type="button" class="btn wide">すべて置き換えて読み込む</button>
+          <button id="bkCancel" type="button" class="btn wide">キャンセル</button>
+        </div>
+      </div>
+      <p id="bkMsg" class="hint" role="status"></p>
+    </section>
+
+    <section class="sec">
+      <h3>CSV</h3>
+      <button id="expBtn" type="button" class="btn wide">表示中の月をCSVで書き出す</button>
+      <p id="expMsg" class="hint" style="margin-top:8px">ほかのカレンダーアプリに取り込むためのファイルです。</p>
+    </section>
+  </div>
+</dialog>
+
+<script>
+(function(){
+'use strict';
+var $ = function(s){ return document.querySelector(s); };
+var pad = function(n){ return String(n).padStart(2,'0'); };
+var WD = ['日','月','火','水','木','金','土'];
+var PALETTE = [
+  {k:'tomato',    name:'トマト',       hex:'#D50000', id:'11'},
+  {k:'flamingo',  name:'フラミンゴ',   hex:'#E67C73', id:'4'},
+  {k:'tangerine', name:'ミカン',       hex:'#F4511E', id:'6'},
+  {k:'banana',    name:'バナナ',       hex:'#F6BF26', id:'5'},
+  {k:'sage',      name:'セージ',       hex:'#33B679', id:'2'},
+  {k:'basil',     name:'バジル',       hex:'#0B8043', id:'10'},
+  {k:'peacock',   name:'ピーコック',   hex:'#039BE5', id:'7'},
+  {k:'blueberry', name:'ブルーベリー', hex:'#3F51B5', id:'9'},
+  {k:'lavender',  name:'ラベンダー',   hex:'#7986CB', id:'1'},
+  {k:'grape',     name:'ブドウ',       hex:'#8E24AA', id:'3'},
+  {k:'graphite',  name:'グラファイト', hex:'#616161', id:'8'}
+];
+/* 以前の6色(番号で保存されたデータ)を、近い色に置き換える */
+var LEGACY_COLOR = ['blueberry','sage','banana','flamingo','grape','graphite'];
+function cdef(c){
+  if(typeof c === 'number') c = LEGACY_COLOR[c] || 'blueberry';
+  for(var i=0;i<PALETTE.length;i++){ if(PALETTE[i].k === c) return PALETTE[i]; }
+  return PALETTE[7];
+}
+function hexOf(c){ return cdef(c).hex; }
+var DEFAULT_PRESETS = [
+  {id:'p-gym',  word:'ジム',   title:'ジム',               start:'19:00', end:'20:30', color:'sage'},
+  {id:'p-hosp', word:'通院',   title:'通院',               start:'10:00', end:'11:00', color:'flamingo'},
+  {id:'p-shin', word:'新幹線', title:'新幹線(大阪→東京)', start:'09:00', end:'',      color:'blueberry'},
+  {id:'p-gomi', word:'ゴミ出し', title:'ゴミ出し',         start:'07:30', end:'',      color:'graphite'},
+  {id:'p-shop', word:'買い物', title:'買い物',             start:'17:00', end:'18:00', color:'banana'},
+  {id:'p-drink',word:'飲み会', title:'飲み会',             start:'19:00', end:'21:30', color:'grape'}
+];
+
+var DEFAULT_CATS = {'p-gym':'健康','p-hosp':'健康','p-shin':'移動','p-gomi':'家事','p-shop':'家事','p-drink':'交際'};
+DEFAULT_PRESETS.forEach(function(p){ p.cat = DEFAULT_CATS[p.id] || ''; });
+var state = { presets:[], months:{}, view:null, sel:'', loadErr:false, cat:'__all', collapsed:false, lastBackup:'', lockMin:1 };
+var editingEv = null, editingPre = null, delArmed = false;
+
+/* ---------- helpers ---------- */
+function esc(s){ return String(s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function uid(){ return Math.random().toString(36).slice(2,9) + Date.now().toString(36); }
+function ymd(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function parseD(s){ var a=s.split('-').map(Number); return new Date(a[0],a[1]-1,a[2]); }
+function ymKey(y,m){ return y+'-'+pad(m+1); }
+function keyOf(dateStr){ return dateStr.slice(0,7); }
+function crosses(o){ return !!(o.start && o.end && o.end < o.start); }
+function timeLabel(o){
+  if(!o.start) return '終日';
+  if(o.cont) return '前日から–'+o.end;
+  if(!o.end) return o.start;
+  return o.start+'–'+(crosses(o) ? '翌' : '')+o.end;
+}
+function dayLabel(s){ var d=parseD(s); return (d.getMonth()+1)+'月'+d.getDate()+'日('+WD[d.getDay()]+')'; }
+function cmp(a,b){ return (a.start||'').localeCompare(b.start||'') || a.title.localeCompare(b.title); }
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function catLabel(c){ return c || 'その他'; }
+function catList(){ var out = []; state.presets.forEach(function(p){ var c = p.cat || ''; if(out.indexOf(c) < 0) out.push(c); }); return out; }
+function groupedIdx(){ var out = []; catList().forEach(function(c){ state.presets.forEach(function(p,i){ if((p.cat||'') === c) out.push(i); }); }); return out; }
+function siblingIdx(i,dir){ var c = state.presets[i].cat || '', j = i + dir; while(j >= 0 && j < state.presets.length){ if((state.presets[j].cat||'') === c) return j; j += dir; } return -1; }
+function shortT(t){ return t.slice(3) === '00' ? String(parseInt(t,10)) + '時' : t; }
+function mkHtml(e){
+  var cls = 'mk', label = e.title, short = '';
+  if(e.cont){ cls += ' ce'; short = '〜' + shortT(e.end); label = '〜' + e.end + ' ' + e.title; }
+  else if(crosses(e)){ cls += ' cs'; short = shortT(e.start) + '〜'; label = e.start + '〜 ' + e.title; }
+  return '<span class="'+cls+'" style="--c:'+hexOf(e.color)+'"><span class="s">'+esc(short)+'</span><span class="t">'+esc(label)+'</span></span>';
+}
+function renderSug(box, input){
+  var list = catList().filter(Boolean);
+  (state.months[ymKey(state.view.y, state.view.m)] || []).forEach(function(e){ if(e.cat && list.indexOf(e.cat) < 0) list.push(e.cat); });
+  box.innerHTML = list.map(function(c){ return '<button type="button" data-v="'+esc(c)+'">'+esc(c)+'</button>'; }).join('');
+  box.onclick = function(ev){ var b = ev.target.closest('[data-v]'); if(b) input.value = b.dataset.v; };
+  box.hidden = !list.length;
+}
+function renderTabs(){
+  $('#dock').classList.toggle('min', state.collapsed);
+  var f = $('#fold');
+  f.textContent = state.collapsed ? 'ワードを開く' : 'ワードを最小化';
+  f.setAttribute('aria-expanded', String(!state.collapsed));
+  var cl = catList();
+  if(state.cat !== '__all' && cl.indexOf(state.cat) < 0) state.cat = '__all';
+  var show = cl.length > 1 || (cl.length === 1 && cl[0] !== '');
+  var html = '';
+  if(show){
+    html += '<button type="button" class="tab" data-cat="__all" aria-pressed="'+(state.cat === '__all')+'">すべて</button>';
+    cl.forEach(function(c){ html += '<button type="button" class="tab" data-cat="'+esc(c)+'" aria-pressed="'+(state.cat === c)+'">'+esc(catLabel(c))+'</button>'; });
+  }
+  $('#tabs').innerHTML = html;
+  $('#tabs').hidden = !show;
+}
+function renderSummary(){
+  var arr = state.months[ymKey(state.view.y, state.view.m)] || [];
+  var box = $('#sum');
+  if(!arr.length){ box.hidden = true; return; }
+  var counts = {}, order = [];
+  arr.forEach(function(e){ var c = e.cat || ''; if(!(c in counts)){ counts[c] = 0; order.push(c); } counts[c]++; });
+  order.sort(function(a,b){ return counts[b] - counts[a]; });
+  $('#sumT').textContent = (state.view.m + 1) + '月の内訳(種類別・全' + arr.length + '件)';
+  $('#sumList').innerHTML = order.map(function(c){ return '<li>'+esc(catLabel(c))+'<b>'+counts[c]+'件</b></li>'; }).join('');
+  box.hidden = false;
+}
+
+/* ---------- storage (この端末のブラウザ内にだけ保存。保護をオンにすると暗号化) ---------- */
+var Store = { q:{}, mem:{}, dek:null, protected:false, meta:null };
+function rawGet(name){
+  if(Object.prototype.hasOwnProperty.call(Store.mem, name)) return Store.mem[name];
+  try{ var v = localStorage.getItem('sc:'+name); return v === null ? null : v; }catch(e){ return null; }
+}
+function rawSet(name, str){
+  try{ localStorage.setItem('sc:'+name, str); delete Store.mem[name]; return true; }
+  catch(e){ Store.mem[name] = str; return false; }
+}
+function isEnvelope(o){ return !!(o && typeof o === 'object' && o.yotei_enc === 1 && typeof o.iv === 'string' && typeof o.c === 'string'); }
+function docAad(name){ return new TextEncoder().encode('yotei-doc|'+name); }
+async function readDoc(name){
+  var raw = rawGet(name);
+  if(raw === null || raw === '') return null;
+  var o = JSON.parse(raw);
+  if(isEnvelope(o)){
+    if(!Store.dek){ var le = new Error('locked'); le.code = 'locked'; throw le; }
+    var bytes = await aesDec(Store.dek, o, docAad(name));
+    return JSON.parse(new TextDecoder().decode(bytes));
+  }
+  return o;
+}
+Store.get = function(name){ return readDoc(name); };
+Store.set = function(name,obj){
+  var json = JSON.stringify(obj);
+  var run = async function(){
+    if(Store.protected && !Store.dek) return; /* ロック中は書き込まない */
+    var str = json;
+    if(Store.dek){
+      var r = await aesEnc(Store.dek, new TextEncoder().encode(json), docAad(name));
+      str = JSON.stringify({yotei_enc:1, iv:r.iv, c:r.c});
+    }
+    if(!rawSet(name, str)){
+      showNote('この端末に保存できませんでした。空き容量やプライベートモードを確認し、バックアップを書き出してください。', true);
+    }
+  };
+  Store.q[name] = (Store.q[name] || Promise.resolve()).then(run).catch(function(){
+    toast('保存できませんでした。もう一度お試しください。');
+  });
+  return Store.q[name];
+};
+Store.remove = function(name){
+  try{ localStorage.removeItem('sc:'+name); }catch(e){}
+  delete Store.mem[name];
+};
+function settled(){ return Promise.all(Object.keys(Store.q).map(function(k){ return Store.q[k]; })); }
+async function initStore(){
+  try{ if(navigator.storage && navigator.storage.persist){ navigator.storage.persist(); } }catch(e){}
+  var m = rawGet('lock');
+  if(m){
+    Store.protected = true;
+    try{ var o = JSON.parse(m); if(o && o.v === 1) Store.meta = o; }catch(e){}
+  }
+}
+
+/* ---------- ui helpers ---------- */
+var toastTimer;
+function toast(msg, undo){
+  var t = $('#toast');
+  t.textContent = '';
+  var sp = document.createElement('span'); sp.textContent = msg; t.appendChild(sp);
+  if(undo){
+    var b = document.createElement('button'); b.type = 'button'; b.textContent = '取り消し';
+    b.onclick = function(){ undo(); t.hidden = true; };
+    t.appendChild(b);
+  }
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.hidden = true; }, undo ? 5000 : 3500);
+}
+function showNote(msg, warn){
+  var n = $('#note'); n.textContent = msg; n.className = 'note' + (warn ? ' warn' : ''); n.hidden = false;
+}
+
+/* ---------- data ---------- */
+async function ensureMonths(){
+  var v = state.view;
+  var keys = [-1,0,1].map(function(o){ var d = new Date(v.y, v.m+o, 1); return ymKey(d.getFullYear(), d.getMonth()); });
+  await Promise.all(keys.map(async function(k){
+    if(k in state.months) return;
+    try{
+      var d = await Store.get('ev-'+k);
+      state.months[k] = (d && Array.isArray(d.items)) ? d.items : [];
+    }catch(e){
+      state.months[k] = null; state.loadErr = true;
+    }
+  }));
+  if(state.loadErr) showNote('一部の予定を読み込めませんでした。ページを開き直してください。', true);
+}
+function monthItems(dateStr){
+  var arr = state.months[keyOf(dateStr)];
+  return Array.isArray(arr) ? arr : null;
+}
+function eventsOn(dateStr){
+  var arr = state.months[keyOf(dateStr)];
+  var own = (arr || []).filter(function(e){ return e.date === dateStr; });
+  var d = parseD(dateStr), prevS = ymd(new Date(d.getFullYear(), d.getMonth(), d.getDate()-1));
+  var prevArr = state.months[keyOf(prevS)] || [];
+  var conts = prevArr.filter(function(e){ return e.date === prevS && crosses(e); }).map(function(e){ var c = clone(e); c.cont = true; return c; });
+  return conts.concat(own.sort(cmp));
+}
+function saveMonth(k){ return Store.set('ev-'+k, {items: state.months[k]}); }
+function savePresets(){ return Store.set('presets', {items: state.presets}); }
+function savePrefs(){ return Store.set('prefs', {collapsed: state.collapsed, cat: state.cat, lastBackup: state.lastBackup || '', lockMin: state.lockMin}); }
+
+/* ---------- render ---------- */
+function render(){
+  var v = state.view, today = ymd(new Date());
+  $('#mTitle').textContent = (v.m+1)+'月';
+  $('#yTitle').textContent = v.y+'年';
+
+  var first = new Date(v.y, v.m, 1), days = new Date(v.y, v.m+1, 0).getDate();
+  var rows = Math.ceil((first.getDay()+days)/7);
+  var html = '';
+  for(var i=0;i<rows*7;i++){
+    var d = new Date(v.y, v.m, 1 - first.getDay() + i);
+    var s = ymd(d), evs = eventsOn(s), dow = d.getDay();
+    var out = d.getMonth() !== v.m, isSel = s === state.sel, isTod = s === today;
+    html += '<button type="button" class="cell'+(out?' out':'')+(isSel?' sel':'')+(isTod?' tod':'')+'" data-date="'+s+'" aria-pressed="'+isSel+'" aria-label="'+(d.getMonth()+1)+'月'+d.getDate()+'日 予定'+evs.length+'件">'
+      + '<span class="num'+(dow===0?' sun':dow===6?' sat':'')+'">'+d.getDate()+'</span>'
+      + '<span class="mks">'
+      + evs.slice(0,3).map(mkHtml).join('')
+      + (evs.length>3 ? '<span class="more">+'+(evs.length-3)+'</span>' : '')
+      + '</span></button>';
+  }
+  $('#grid').innerHTML = html;
+
+  var sd = parseD(state.sel);
+  $('#dayTitle').innerHTML = esc(dayLabel(state.sel)) + (state.sel===today ? '<span class="tag">今日</span>' : '');
+  var list = eventsOn(state.sel);
+  $('#dayList').innerHTML = list.length ? list.map(function(e){
+    return '<li><button type="button" class="ev" data-id="'+e.id+'" style="--c:'+hexOf(e.color)+'" aria-label="'+esc(e.title)+' を編集">'
+      + '<span class="bar"></span><span class="et">'+esc(timeLabel(e))+'</span><span class="en">'+esc(e.title)+(e.cat ? '<span class="cat">'+esc(e.cat)+'</span>' : '')+'</span></button></li>';
+  }).join('') : '<li class="empty">予定はありません。下のワードをタップすると追加できます。</li>';
+
+  $('#dockLabel').textContent = 'タップで '+(sd.getMonth()+1)+'/'+sd.getDate()+'('+WD[sd.getDay()]+') に追加';
+  renderSummary();
+  renderChips();
+}
+function renderChips(){
+  renderTabs();
+  $('#chips').innerHTML = state.presets.filter(function(p){ return state.cat === '__all' || (p.cat || '') === state.cat; }).map(function(p){
+    return '<button type="button" class="chip" data-pid="'+p.id+'" style="--c:'+hexOf(p.color)+'">'
+      + '<span class="w">'+esc(p.word)+'</span><span class="tm">'+esc(timeLabel(p))+'</span></button>';
+  }).join('') + '<button type="button" class="chip edit" id="editPresets"><span class="w">ワード編集</span></button>';
+}
+
+/* ---------- navigation ---------- */
+async function selectDate(s){
+  var d = parseD(s);
+  state.sel = s;
+  if(d.getFullYear() !== state.view.y || d.getMonth() !== state.view.m){
+    state.view = {y:d.getFullYear(), m:d.getMonth()};
+    await ensureMonths();
+  }
+  render();
+}
+async function goMonth(delta){
+  var d = new Date(state.view.y, state.view.m+delta, 1);
+  state.view = {y:d.getFullYear(), m:d.getMonth()};
+  var now = new Date();
+  state.sel = (d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth()) ? ymd(now) : ymd(d);
+  await ensureMonths();
+  render();
+}
+
+/* ---------- add from word ---------- */
+function addFromPreset(p, chipEl){
+  var date = state.sel, title = p.title || p.word;
+  var arr = monthItems(date);
+  if(!arr){ toast('この月の予定を読み込めていないため、追加できません。'); return; }
+  if(arr.some(function(e){ return e.date===date && e.title===title && (e.start||'')===(p.start||''); })){
+    toast('「'+title+'」はこの日にすでに入っています。'); return;
+  }
+  var ev = {id:uid(), date:date, title:title, start:p.start||'', end:p.end||'', color:(p.color != null ? p.color : 'blueberry'), cat:p.cat||''};
+  arr.push(ev);
+  var k = keyOf(date);
+  saveMonth(k);
+  render();
+  var again = document.querySelector('.chip[data-pid="'+p.id+'"]');
+  if(again){ again.classList.add('flash'); setTimeout(function(){ again.classList.remove('flash'); }, 600); }
+  var d = parseD(date);
+  toast((d.getMonth()+1)+'/'+d.getDate()+' '+title+(ev.start?' '+ev.start:'')+' を追加しました', function(){
+    var a = state.months[k]; if(!a) return;
+    state.months[k] = a.filter(function(e){ return e.id !== ev.id; });
+    saveMonth(k); render();
+  });
+}
+
+/* ---------- swatches ---------- */
+function buildSwatches(el, selected, name){
+  var sel = cdef(selected).k;
+  el.innerHTML = PALETTE.map(function(c){
+    return '<label><input type="radio" name="'+name+'" value="'+c.k+'"'+(c.k===sel?' checked':'')+' aria-label="'+c.name+'"><i style="--c:'+c.hex+'" title="'+c.name+'"></i></label>';
+  }).join('');
+}
+function pickedColor(el){ var c = el.querySelector('input:checked'); return c ? c.value : 'blueberry'; }
+
+/* ---------- event dialog ---------- */
+function openEv(ev){
+  editingEv = ev || null;
+  var e = ev || {title:'', date:state.sel, start:'', end:'', color:'blueberry'};
+  $('#evT').textContent = ev ? '予定を編集' : '予定を追加';
+  $('#evTitle').value = e.title; $('#evDate').value = e.date;
+  $('#evCat').value = e.cat || ''; renderSug($('#evSug'), $('#evCat'));
+  $('#evStart').value = e.start; $('#evEnd').value = e.end;
+  buildSwatches($('#evSw'), e.color, 'evc');
+  $('#evDel').hidden = !ev; $('#evErr').textContent = '';
+  $('#evDlg').showModal();
+}
+async function saveEv(){
+  var title = $('#evTitle').value.trim(), date = $('#evDate').value;
+  var start = $('#evStart').value, end = $('#evEnd').value;
+  var err = $('#evErr');
+  if(!title){ err.textContent = '予定の内容を入力してください。'; $('#evTitle').focus(); return; }
+  if(!date){ err.textContent = '日付を選んでください。'; return; }
+  if(end && !start){ err.textContent = '終了時刻を入れるときは開始時刻も入れてください。'; return; }
+  if(start && end && end === start){ err.textContent = '開始と同じ時刻は指定できません。終了時刻を変えてください。'; return; }
+  var color = pickedColor($('#evSw')), cat = $('#evCat').value.trim();
+  var newKey = keyOf(date);
+  if(!(newKey in state.months)){
+    var d = parseD(date); state.view = {y:d.getFullYear(), m:d.getMonth()}; await ensureMonths();
+  }
+  if(!Array.isArray(state.months[newKey])){ err.textContent = 'この月の予定を読み込めていないため保存できません。'; return; }
+  var obj;
+  if(editingEv){
+    var oldKey = keyOf(editingEv.date);
+    var oldArr = state.months[oldKey];
+    if(!Array.isArray(oldArr)){ err.textContent = '予定を読み込めていないため保存できません。'; return; }
+    var prev = oldArr.filter(function(e){ return e.id === editingEv.id; })[0] || editingEv;
+    obj = {id:prev.id, date:date, title:title, start:start, end:end, color:color, cat:cat};
+    if(oldKey !== newKey){
+      state.months[oldKey] = oldArr.filter(function(e){ return e.id !== prev.id; });
+      saveMonth(oldKey);
+      state.months[newKey].push(obj);
+    }else{
+      var idx = oldArr.indexOf(prev);
+      if(idx >= 0) oldArr[idx] = obj; else oldArr.push(obj);
+    }
+  }else{
+    obj = {id:uid(), date:date, title:title, start:start, end:end, color:color, cat:cat};
+    state.months[newKey].push(obj);
+  }
+  saveMonth(newKey);
+  $('#evDlg').close();
+  await selectDate(date);
+}
+function deleteEv(){
+  if(!editingEv) return;
+  var k = keyOf(editingEv.date), arr = state.months[k];
+  if(!Array.isArray(arr)) return;
+  var id = editingEv.id;
+  state.months[k] = arr.filter(function(e){ return e.id !== id; });
+  saveMonth(k);
+  $('#evDlg').close();
+  render();
+}
+
+/* ---------- word dialog ---------- */
+function openPre(){
+  showPreList();
+  $('#preDlg').showModal();
+}
+function showPreList(){
+  $('#preForm').hidden = true; $('#preList').hidden = false;
+  var prevCat = null;
+  $('#preRows').innerHTML = groupedIdx().map(function(i){
+    var p = state.presets[i];
+    var head = (p.cat || '') !== prevCat ? '<li class="grp" role="presentation">'+esc(catLabel(p.cat || ''))+'</li>' : '';
+    prevCat = p.cat || '';
+    return head + '<li><button type="button" class="main" data-edit="'+p.id+'" style="--c:'+hexOf(p.color)+'">'
+      + '<span class="dot"></span><span style="min-width:0"><span class="rt">'+esc(p.word)+'</span>'
+      + '<span class="rs">'+esc(timeLabel(p))+'  '+esc(p.title||p.word)+'</span></span></button>'
+      + '<button type="button" class="mv" data-up="'+i+'" aria-label="'+esc(p.word)+' を前へ"'+(siblingIdx(i,-1) < 0 ? ' disabled' : '')+'>▲</button>'
+      + '<button type="button" class="mv" data-down="'+i+'" aria-label="'+esc(p.word)+' を後ろへ"'+(siblingIdx(i,1) < 0 ? ' disabled' : '')+'>▼</button></li>';
+  }).join('') || '<li class="hint">ワードがありません。追加してみましょう。</li>';
+}
+function showPreForm(p){
+  editingPre = p || null; delArmed = false;
+  $('#preList').hidden = true; $('#preForm').hidden = false;
+  $('#pfT').textContent = p ? 'ワードを編集' : 'ワードを追加';
+  $('#pfWord').value = p ? p.word : '';
+  $('#pfCat').value = p ? (p.cat || '') : (state.cat !== '__all' ? state.cat : ''); renderSug($('#pfSug'), $('#pfCat')); $('#pfTitle').value = p ? (p.title===p.word ? '' : p.title) : '';
+  $('#pfStart').value = p ? p.start : ''; $('#pfEnd').value = p ? p.end : '';
+  buildSwatches($('#pfSw'), p ? p.color : 'blueberry', 'pfc');
+  $('#pfDel').hidden = !p; $('#pfDel').textContent = '削除'; $('#pfErr').textContent = '';
+  $('#pfWord').focus();
+}
+function savePre(){
+  var word = $('#pfWord').value.trim(), title = $('#pfTitle').value.trim();
+  var start = $('#pfStart').value, end = $('#pfEnd').value, err = $('#pfErr');
+  if(!word){ err.textContent = 'ワードを入力してください。'; $('#pfWord').focus(); return; }
+  if(end && !start){ err.textContent = '終了時刻を入れるときは開始時刻も入れてください。'; return; }
+  if(start && end && end === start){ err.textContent = '開始と同じ時刻は指定できません。終了時刻を変えてください。'; return; }
+  var color = pickedColor($('#pfSw'));
+  var obj = {word:word, title:title || word, start:start, end:end, color:color, cat:$('#pfCat').value.trim()};
+  if(editingPre){
+    var t = state.presets.filter(function(p){ return p.id === editingPre.id; })[0];
+    if(t){ t.word=obj.word; t.title=obj.title; t.start=obj.start; t.end=obj.end; t.color=obj.color; t.cat=obj.cat; }
+  }else{
+    obj.id = 'p-'+uid(); state.presets.push(obj);
+  }
+  savePresets(); renderChips(); showPreList();
+}
+function delPre(){
+  if(!editingPre) return;
+  if(!delArmed){ delArmed = true; $('#pfDel').textContent = 'もう一度タップで削除'; return; }
+  state.presets = state.presets.filter(function(p){ return p.id !== editingPre.id; });
+  savePresets(); renderChips(); showPreList();
+}
+function movePre(i, dir){
+  var j = siblingIdx(i, dir);
+  if(j < 0 || j >= state.presets.length) return;
+  var tmp = state.presets[i]; state.presets[i] = state.presets[j]; state.presets[j] = tmp;
+  savePresets(); renderChips(); showPreList();
+}
+
+/* ---------- CSV export ---------- */
+function t12(t){ var a=t.split(':').map(Number); return ((a[0]%12)||12)+':'+pad(a[1])+' '+(a[0]>=12?'PM':'AM'); }
+function addMin(t,n){ var a=t.split(':').map(Number); var tot=Math.min(a[0]*60+a[1]+n, 23*60+59); return pad(Math.floor(tot/60))+':'+pad(tot%60); }
+function exportCsv(){
+  var msg = $('#expMsg'), k = ymKey(state.view.y, state.view.m);
+  var items = (state.months[k] || []).slice().sort(function(a,b){ return a.date.localeCompare(b.date) || cmp(a,b); });
+  if(!items.length){ msg.textContent = 'この月には書き出せる予定がありません。'; return; }
+  var head = ['Subject','Start Date','Start Time','End Date','End Time','All Day Event','Description'];
+  var rows = items.map(function(e){
+    var p = e.date.split('-'), sd = p[1]+'/'+p[2]+'/'+p[0];
+    if(!e.start) return [e.title, sd, '', sd, '', 'True', e.cat || ''];
+    var ed = sd;
+    if(e.end && e.end < e.start){ var q = parseD(e.date); q.setDate(q.getDate()+1); ed = pad(q.getMonth()+1)+'/'+pad(q.getDate())+'/'+q.getFullYear(); }
+    return [e.title, sd, t12(e.start), ed, t12(e.end || addMin(e.start,60)), 'False', e.cat || ''];
+  });
+  var csv = '\ufeff' + [head].concat(rows).map(function(r){
+    return r.map(function(c){ return '"'+String(c).replace(/"/g,'""')+'"'; }).join(',');
+  }).join('\r\n');
+  downloadFile('yotei-'+k+'.csv', csv, 'text/csv');
+  msg.textContent = '書き出しました。終了時刻のない予定は1時間として出力しています。';
+}
+
+/* ---------- files ---------- */
+function downloadFile(name, text, type){
+  var blob = new Blob([text], {type: type});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+}
+
+/* ---------- backup ---------- */
+function stamp(d){ return d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate()); }
+function allMonthKeys(){
+  var out = [];
+  try{
+    for(var i=0;i<localStorage.length;i++){
+      var k = localStorage.key(i);
+      if(k && k.indexOf('sc:ev-') === 0) out.push(k.slice(3));
+    }
+  }catch(e){}
+  Object.keys(Store.mem).forEach(function(n){ if(n.indexOf('ev-') === 0 && out.indexOf(n) < 0) out.push(n); });
+  return out;
+}
+async function hasAnyEvents(){
+  var ks = allMonthKeys();
+  for(var i=0;i<ks.length;i++){
+    try{ var d = await readDoc(ks[i]); if(d && Array.isArray(d.items) && d.items.length) return true; }catch(e){}
+  }
+  return false;
+}
+var bkLater = false;
+async function checkBackupNote(){
+  var t = state.lastBackup ? new Date(state.lastBackup).getTime() : NaN;
+  var due = isNaN(t) || (Date.now() - t > 30*86400000);
+  var show = due && !bkLater && await hasAnyEvents();
+  $('#bkNote').hidden = !show;
+  if(show) $('#bkNoteT').textContent = isNaN(t) ? 'まだバックアップを書き出していません。' : 'バックアップが30日以上前です。';
+}
+function refreshBackupInfo(){
+  var t = state.lastBackup ? new Date(state.lastBackup) : null;
+  $('#bkLast').textContent = (t && !isNaN(t.getTime()))
+    ? '最後のバックアップ: '+t.getFullYear()+'年'+(t.getMonth()+1)+'月'+t.getDate()+'日'
+    : 'まだバックアップを書き出していません。';
+}
+/* ---------- encryption (パスワード暗号化: PBKDF2 + AES-GCM) ---------- */
+var CRYPTO_OK = !!(window.crypto && window.crypto.subtle && window.TextEncoder);
+var PBKDF2_ITER = 600000;
+function b64e(buf){
+  var b = new Uint8Array(buf), s = '';
+  for(var i=0;i<b.length;i+=0x8000){ s += String.fromCharCode.apply(null, b.subarray(i, i+0x8000)); }
+  return btoa(s);
+}
+function b64d(str){
+  var s = atob(str), b = new Uint8Array(s.length);
+  for(var i=0;i<s.length;i++) b[i] = s.charCodeAt(i);
+  return b;
+}
+async function deriveKey(pw, salt, iter){
+  var base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw.normalize('NFKC')), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2', hash:'SHA-256', salt:salt, iterations:iter}, base,
+                                 {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+}
+function aadOf(iter, saltB, ivB){ return new TextEncoder().encode(['yotei', '1', iter, saltB, ivB].join('|')); }
+async function encryptText(plain, pw){
+  var salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  var key = await deriveKey(pw, salt, PBKDF2_ITER);
+  var saltB = b64e(salt), ivB = b64e(iv), aad = aadOf(PBKDF2_ITER, saltB, ivB);
+  var ct = await crypto.subtle.encrypt({name:'AES-GCM', iv:iv, additionalData:aad}, key, new TextEncoder().encode(plain));
+  await crypto.subtle.decrypt({name:'AES-GCM', iv:iv, additionalData:aad}, key, ct); /* 書き出す前に、開けることを確かめる */
+  return JSON.stringify({app:'yotei', version:1, encrypted:true, kdf:'PBKDF2-SHA256', iterations:PBKDF2_ITER,
+                         cipher:'AES-GCM-256', salt:saltB, iv:ivB, data:b64e(ct)});
+}
+async function decryptEnvelope(env, pw){
+  var bad = function(){ var e = new Error('format'); e.code = 'format'; return e; };
+  if(!env || env.app !== 'yotei' || env.version !== 1 || env.kdf !== 'PBKDF2-SHA256' || env.cipher !== 'AES-GCM-256'
+     || typeof env.salt !== 'string' || typeof env.iv !== 'string' || typeof env.data !== 'string'
+     || typeof env.iterations !== 'number') throw bad();
+  if(!(env.iterations >= 100000 && env.iterations <= 2000000) || env.iterations !== Math.floor(env.iterations)) throw bad();
+  var salt, iv, ct;
+  try{ salt = b64d(env.salt); iv = b64d(env.iv); ct = b64d(env.data); }catch(e){ throw bad(); }
+  if(salt.length !== 16 || iv.length !== 12 || ct.length < 17) throw bad();
+  var key = await deriveKey(pw, salt, env.iterations);
+  var plain = await crypto.subtle.decrypt({name:'AES-GCM', iv:iv, additionalData:aadOf(env.iterations, env.salt, env.iv)}, key, ct);
+  return new TextDecoder().decode(plain);
+}
+function syncEncUi(){
+  if(!CRYPTO_OK){ $('#encOn').checked = false; $('#encOn').disabled = true; $('#encNone').hidden = false; }
+  var on = CRYPTO_OK && $('#encOn').checked;
+  $('#encBox').hidden = !on;
+  $('#encPlainWarn').hidden = on || !CRYPTO_OK;
+  $('#bkOut').textContent = on ? '暗号化してバックアップを書き出す' : 'バックアップを書き出す(暗号化なし)';
+}
+async function exportBackup(){
+  var msg = $('#bkMsg'); msg.textContent = '';
+  var enc = CRYPTO_OK && $('#encOn').checked, pw = '';
+  if(enc){
+    pw = $('#encPw').value;
+    if(pw.length < 8){ msg.textContent = 'パスワードは8文字以上にしてください。'; $('#encPw').focus(); return; }
+    if(pw !== $('#encPw2').value){ msg.textContent = '2つのパスワードが一致しません。'; $('#encPw2').focus(); return; }
+  }
+  var btn = $('#bkOut'); btn.disabled = true;
+  try{
+    await settled();
+    var months = {}, total = 0;
+    var mkeys = allMonthKeys();
+    for(var mi=0; mi<mkeys.length; mi++){
+      var d = await readDoc(mkeys[mi]);
+      if(d && Array.isArray(d.items) && d.items.length){ months[mkeys[mi].slice(3)] = d.items; total += d.items.length; }
+    }
+    var data = {app:'yotei', version:1, exportedAt:new Date().toISOString(),
+                presets:state.presets, prefs:{collapsed:state.collapsed, cat:state.cat}, months:months};
+    var text = JSON.stringify(data, null, 1), name = 'yotei-backup-'+stamp(new Date())+'.json';
+    if(enc){
+      msg.textContent = '暗号化しています…';
+      text = await encryptText(text, pw);
+      name = 'yotei-backup-'+stamp(new Date())+'-encrypted.json';
+    }
+    downloadFile(name, text, 'application/json');
+    state.lastBackup = new Date().toISOString();
+    savePrefs();
+    refreshBackupInfo(); checkBackupNote();
+    var cnt = '(予定'+total+'件、ワード'+state.presets.length+'個)';
+    msg.textContent = enc
+      ? '暗号化して書き出しました'+cnt+'。パスワードはこのアプリに保存されません。忘れるとバックアップを開けないので、安全な場所に控えてください。'
+      : '書き出しました'+cnt+'。暗号化していないので、ファイルの取り扱いにご注意ください。';
+    if(enc){ $('#encPw').value = ''; $('#encPw2').value = ''; }
+  }catch(e){
+    msg.textContent = '書き出せませんでした。';
+  }finally{
+    btn.disabled = false; syncEncUi();
+  }
+}
+
+var ID_RE = /^[A-Za-z0-9_-]{1,40}$/;
+function validTime(t){ return t === '' || /^([01]\d|2[0-3]):[0-5]\d$/.test(t); }
+function cleanColor(c){
+  if(typeof c === 'number' && c >= 0 && c < LEGACY_COLOR.length) return c;
+  if(typeof c === 'string' && PALETTE.some(function(x){ return x.k === c; })) return c;
+  return 'blueberry';
+}
+function cleanTimes(o){
+  var st = (typeof o.start === 'string') ? o.start : '', en = (typeof o.end === 'string') ? o.end : '';
+  if(!validTime(st)) st = '';
+  if(!validTime(en) || !st) en = '';
+  if(st && en && st === en) en = '';
+  return {start:st, end:en};
+}
+function cleanEvent(e){
+  if(!e || typeof e !== 'object' || typeof e.id !== 'string' || !ID_RE.test(e.id)) return null;
+  if(typeof e.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(e.date)) return null;
+  var d = parseD(e.date); if(isNaN(d.getTime()) || ymd(d) !== e.date) return null;
+  if(typeof e.title !== 'string' || !e.title.trim()) return null;
+  var t = cleanTimes(e);
+  return {id:e.id, date:e.date, title:e.title.trim().slice(0,60), start:t.start, end:t.end,
+          color:cleanColor(e.color), cat:(typeof e.cat === 'string') ? e.cat.trim().slice(0,12) : ''};
+}
+function cleanPreset(p){
+  if(!p || typeof p !== 'object' || typeof p.id !== 'string' || !ID_RE.test(p.id)) return null;
+  if(typeof p.word !== 'string' || !p.word.trim()) return null;
+  var t = cleanTimes(p), word = p.word.trim().slice(0,12);
+  return {id:p.id, word:word, title:(typeof p.title === 'string' && p.title.trim()) ? p.title.trim().slice(0,60) : word,
+          start:t.start, end:t.end, color:cleanColor(p.color), cat:(typeof p.cat === 'string') ? p.cat.trim().slice(0,12) : ''};
+}
+function parseBackup(text){
+  var d;
+  try{ d = JSON.parse(text); }catch(e){ return {error:'ファイルを読み取れませんでした。書き出したバックアップ(.json)を選んでください。'}; }
+  if(!d || d.app !== 'yotei' || typeof d.version !== 'number' || !d.months || typeof d.months !== 'object' || Array.isArray(d.months)){
+    return {error:'この予定帳のバックアップではないようです。'};
+  }
+  if(d.version > 1) return {error:'新しい版のバックアップです。アプリを最新にしてから読み込んでください。'};
+  var dropped = 0, presets = [], months = {}, events = 0;
+  (Array.isArray(d.presets) ? d.presets : []).forEach(function(p){ var c = cleanPreset(p); if(c) presets.push(c); else dropped++; });
+  Object.keys(d.months).forEach(function(k){
+    if(!/^\d{4}-\d{2}$/.test(k) || !Array.isArray(d.months[k])){ dropped++; return; }
+    var list = [], seen = {};
+    d.months[k].forEach(function(e){
+      var c = cleanEvent(e);
+      if(c && keyOf(c.date) === k && !seen[c.id]){ list.push(c); seen[c.id] = 1; } else dropped++;
+    });
+    if(list.length){ months[k] = list; events += list.length; }
+  });
+  return {presets:presets, months:months, events:events, dropped:dropped,
+          at:(typeof d.exportedAt === 'string') ? d.exportedAt.slice(0,10) : ''};
+}
+var pendingImport = null, replaceArmed = false;
+var pendingEnc = null;
+function showImport(text){
+  var msg = $('#bkMsg');
+  var r = parseBackup(text);
+  if(r.error){ msg.textContent = r.error; return; }
+  if(!r.events && !r.presets.length){ msg.textContent = '読み込める予定やワードがありませんでした。'; return; }
+  pendingImport = r; replaceArmed = false;
+  $('#bkReplace').textContent = 'すべて置き換えて読み込む';
+  $('#bkSum').textContent = (r.at ? r.at+'に書き出したバックアップです。' : 'バックアップです。')
+    + '予定'+r.events+'件、ワード'+r.presets.length+'個を読み込めます。'
+    + (r.dropped ? '(読み込めない項目が'+r.dropped+'件ありました)' : '');
+  $('#bkConfirm').hidden = false;
+}
+async function onBackupFile(){
+  var f = $('#bkFile').files[0];
+  $('#bkFile').value = '';
+  if(!f) return;
+  var msg = $('#bkMsg'); msg.textContent = '';
+  $('#bkConfirm').hidden = true; $('#bkPassBox').hidden = true; pendingImport = null; pendingEnc = null;
+  if(f.size > 5*1024*1024){ msg.textContent = 'ファイルが大きすぎます(5MBまで)。'; return; }
+  var text;
+  try{ text = await f.text(); }catch(e){ msg.textContent = 'ファイルを読み込めませんでした。'; return; }
+  var env = null;
+  try{ env = JSON.parse(text); }catch(e){}
+  if(env && env.encrypted === true){
+    if(!CRYPTO_OK){ msg.textContent = 'このブラウザや開き方では、暗号化されたバックアップを開けません(https:// で開く必要があります)。'; return; }
+    pendingEnc = env; $('#bkPw').value = ''; $('#bkPassBox').hidden = false; $('#bkPw').focus();
+    return;
+  }
+  showImport(text);
+}
+async function onDecrypt(){
+  var msg = $('#bkMsg'), pw = $('#bkPw').value;
+  if(!pendingEnc) return;
+  if(!pw){ msg.textContent = 'パスワードを入力してください。'; return; }
+  var btn = $('#bkDecrypt'); btn.disabled = true; msg.textContent = '開いています…';
+  var plain;
+  try{
+    plain = await decryptEnvelope(pendingEnc, pw);
+  }catch(e){
+    msg.textContent = (e && e.code === 'format') ? 'このファイルの形式には対応していません。' : 'パスワードが違うか、ファイルが壊れています。';
+    btn.disabled = false; return;
+  }
+  btn.disabled = false;
+  pendingEnc = null; $('#bkPassBox').hidden = true; $('#bkPw').value = ''; msg.textContent = '';
+  showImport(plain);
+}
+async function applyImport(mode){
+  var imp = pendingImport; if(!imp) return;
+  await settled();
+  var addedEv = 0, addedPre = 0, skipped = 0;
+  if(mode === 'replace'){
+    allMonthKeys().forEach(function(n){ Store.remove(n); });
+    Object.keys(imp.months).forEach(function(k){ Store.set('ev-'+k, {items:imp.months[k]}); addedEv += imp.months[k].length; });
+    if(imp.presets.length){ state.presets = imp.presets; savePresets(); addedPre = imp.presets.length; }
+  }else{
+    var impKeys = Object.keys(imp.months);
+    for(var ki=0; ki<impKeys.length; ki++){
+      var k = impKeys[ki], cur = null, items, ids = {};
+      try{ cur = await readDoc('ev-'+k); }catch(e){ skipped++; continue; }
+      items = (cur && Array.isArray(cur.items)) ? cur.items : [];
+      items.forEach(function(e){ ids[e.id] = 1; });
+      imp.months[k].forEach(function(e){ if(!ids[e.id]){ items.push(e); ids[e.id] = 1; addedEv++; } });
+      Store.set('ev-'+k, {items:items});
+    }
+    var have = {};
+    state.presets.forEach(function(p){ have[p.id] = 1; });
+    imp.presets.forEach(function(p){ if(!have[p.id]){ state.presets.push(p); have[p.id] = 1; addedPre++; } });
+    if(addedPre) savePresets();
+  }
+  await settled();
+  pendingImport = null; replaceArmed = false;
+  $('#bkConfirm').hidden = true;
+  state.months = {}; state.loadErr = false;
+  await ensureMonths();
+  render(); checkBackupNote();
+  $('#bkMsg').textContent = (mode === 'replace' ? '置き換えました' : '追加しました')
+    + '(予定'+addedEv+'件、ワード'+addedPre+'個)。' + (skipped ? '読めない月が'+skipped+'か月あり、その分は追加していません。' : '');
+}
+
+/* ---------- settings / install ---------- */
+var deferredInstall = null;
+window.addEventListener('beforeinstallprompt', function(e){
+  e.preventDefault(); deferredInstall = e;
+  var b = $('#instBtn'); if(b) b.hidden = false;
+});
+window.addEventListener('appinstalled', function(){
+  deferredInstall = null; var b = $('#instBtn'); if(b) b.hidden = true;
+});
+async function openSet(){
+  refreshBackupInfo();
+  $('#bkConfirm').hidden = true; pendingImport = null; $('#bkMsg').textContent = '';
+  $('#bkPassBox').hidden = true; pendingEnc = null; $('#bkPw').value = ''; $('#encPw').value = ''; $('#encPw2').value = ''; syncEncUi(); $('#expMsg').textContent = 'ほかのカレンダーアプリに取り込むためのファイルです。';
+  $('#lkMsg2').textContent = ''; $('#lkNewPw').value = ''; $('#lkNewPw2').value = ''; disArmed = false; $('#lkDisable').textContent = '保護をやめる';
+  syncLockUi();
+  var lines = [];
+  if('serviceWorker' in navigator){
+    lines.push(navigator.serviceWorker.controller ? 'オフライン利用: 使えます' : 'オフライン利用: 準備中です。もう一度開くと使えます');
+  }else{
+    lines.push('オフライン利用: このブラウザや開き方では使えません');
+  }
+  try{
+    if(navigator.storage && navigator.storage.persisted){
+      var p = await navigator.storage.persisted();
+      lines.push(p ? '保存の安定: 有効(自動で消されにくい設定です)' : '保存の安定: 未設定(空き容量が少ないと消えることがあります)');
+    }
+  }catch(e){}
+  $('#stState').textContent = lines.join('\n');
+  $('#setDlg').showModal();
+}
+
+/* ---------- 生体認証で保護 (パスキーのPRF + AES-GCM) ---------- */
+function aad(str){ return new TextEncoder().encode(str); }
+function rnd(n){ return crypto.getRandomValues(new Uint8Array(n)); }
+async function aesEnc(key, bytes, aadBytes){
+  var iv = rnd(12);
+  var ct = await crypto.subtle.encrypt({name:'AES-GCM', iv:iv, additionalData:aadBytes}, key, bytes);
+  return {iv:b64e(iv), c:b64e(ct)};
+}
+async function aesDec(key, o, aadBytes){
+  return new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM', iv:b64d(o.iv), additionalData:aadBytes}, key, b64d(o.c)));
+}
+async function kekFromPrf(prfBytes){
+  var base = await crypto.subtle.importKey('raw', prfBytes, 'HKDF', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name:'HKDF', hash:'SHA-256', salt:new Uint8Array(32), info:aad('yotei-kek-v1')}, base,
+                                 {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+}
+function importDek(raw){ return crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt','decrypt']); }
+function noPrf(){ var e = new Error('noprf'); e.code = 'noprf'; return e; }
+async function passkeyCreate(){
+  var cred = await navigator.credentials.create({publicKey:{
+    rp:{name:'ワンタップ予定帳'},
+    user:{id:rnd(16), name:'yotei', displayName:'ワンタップ予定帳'},
+    challenge:rnd(32),
+    pubKeyCredParams:[{type:'public-key', alg:-7}, {type:'public-key', alg:-257}],
+    authenticatorSelection:{authenticatorAttachment:'platform', residentKey:'required', requireResidentKey:true, userVerification:'required'},
+    attestation:'none', timeout:120000, extensions:{prf:{}}
+  }});
+  var ext = cred.getClientExtensionResults ? cred.getClientExtensionResults() : {};
+  if(!(ext && ext.prf && ext.prf.enabled)) throw noPrf();
+  return new Uint8Array(cred.rawId);
+}
+async function passkeyPrf(credId, prfSalt){
+  var a = await navigator.credentials.get({publicKey:{
+    challenge:rnd(32), allowCredentials:[{type:'public-key', id:credId}],
+    userVerification:'required', timeout:120000, extensions:{prf:{eval:{first:prfSalt}}}
+  }});
+  var r = a.getClientExtensionResults ? a.getClientExtensionResults() : {};
+  var out = r && r.prf && r.prf.results && r.prf.results.first;
+  if(!out) throw noPrf();
+  return new Uint8Array(out);
+}
+function pkErr(e){
+  var n = e && e.name;
+  if(e && e.code === 'noprf') return 'この端末のパスキーは、データの保護に必要な機能(PRF)に対応していません。';
+  if(n === 'NotAllowedError') return 'キャンセルされたか、時間切れになりました。もう一度お試しください。';
+  if(n === 'InvalidStateError') return 'このパスキーはすでに登録されています。';
+  if(n === 'SecurityError') return 'このアドレスでは、パスキーを使えません(https:// で開く必要があります)。';
+  return '生体認証を使えませんでした。';
+}
+var disArmed = false;
+async function syncLockUi(){
+  $('#lkOff').hidden = Store.protected; $('#lkOn').hidden = !Store.protected;
+  $('#lkDelay').value = String(state.lockMin);
+  var btn = $('#lkEnable');
+  if(Store.protected) return;
+  if(!CRYPTO_OK || !window.PublicKeyCredential || !navigator.credentials){
+    btn.disabled = true; $('#lkMsg2').textContent = 'この端末やブラウザ、開き方では使えません(https:// で開く必要があります)。'; return;
+  }
+  btn.disabled = false;
+  try{
+    if(PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable && !(await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable())){
+      $('#lkMsg2').textContent = '指紋・顔・画面ロックが設定されていない可能性があります。端末の設定を確認してください。';
+    }
+  }catch(e){}
+}
+async function enableProtection(){
+  var msg = $('#lkMsg2'); msg.textContent = '';
+  var pw = $('#lkNewPw').value;
+  if(pw.length < 8){ msg.textContent = '回復用のパスワードは8文字以上にしてください。'; $('#lkNewPw').focus(); return; }
+  if(pw !== $('#lkNewPw2').value){ msg.textContent = '2つのパスワードが一致しません。'; $('#lkNewPw2').focus(); return; }
+  if(!CRYPTO_OK || !window.PublicKeyCredential || !navigator.credentials){ msg.textContent = 'この端末やブラウザ、開き方では使えません(https:// で開く必要があります)。'; return; }
+  var btn = $('#lkEnable'); btn.disabled = true;
+  var docs = [], armed = false;
+  try{
+    await settled();
+    msg.textContent = '指紋・顔・画面ロックの確認が出ます。2回出ることがあります。';
+    var credId = await passkeyCreate();
+    var prfSalt = rnd(32);
+    var prfOut = await passkeyPrf(credId, prfSalt);
+    msg.textContent = '暗号化しています…';
+    var raw = rnd(32);
+    var wrapPrf = await aesEnc(await kekFromPrf(prfOut), raw, aad('yotei-wrap|prf'));
+    var salt = rnd(16);
+    var wrapPw = await aesEnc(await deriveKey(pw, salt, PBKDF2_ITER), raw, aad('yotei-wrap|pw'));
+    var meta = {v:1, cred:b64e(credId), prfSalt:b64e(prfSalt), wrapPrf:wrapPrf,
+                wrapPw:{salt:b64e(salt), iter:PBKDF2_ITER, iv:wrapPw.iv, c:wrapPw.c}};
+    var dek = await importDek(raw);
+    var names = ['presets', 'prefs'].concat(allMonthKeys());
+    for(var i=0;i<names.length;i++){
+      var o = await readDoc(names[i]);
+      if(o !== null) docs.push({name:names[i], obj:o});
+    }
+    /* 先に回復用の情報を書き、そのあとでデータを暗号化して書き直す */
+    if(!rawSet('lock', JSON.stringify(meta))) throw new Error('save');
+    armed = true;
+    Store.meta = meta; Store.protected = true; Store.dek = dek;
+    docs.forEach(function(d){ Store.set(d.name, d.obj); });
+    await settled();
+    for(var j=0;j<docs.length;j++){
+      var r = JSON.parse(rawGet(docs[j].name));
+      var back = await readDoc(docs[j].name);
+      if(!isEnvelope(r) || JSON.stringify(back) !== JSON.stringify(docs[j].obj)) throw new Error('verify');
+    }
+    $('#lkNewPw').value = ''; $('#lkNewPw2').value = '';
+    msg.textContent = '保護を始めました。次に開くときから、指紋・顔・画面ロックの確認が必要です。';
+  }catch(e){
+    if(armed){
+      try{ await settled(); }catch(x){}
+      Store.dek = null; Store.protected = false; Store.meta = null;
+      docs.forEach(function(d){ rawSet(d.name, JSON.stringify(d.obj)); });
+      Store.remove('lock');
+    }
+    msg.textContent = (e && e.message === 'save') ? 'この端末に保存できませんでした。空き容量を確認してください。'
+      : (e && e.message === 'verify') ? '確認に失敗したので、元の状態に戻しました。'
+      : pkErr(e);
+  }finally{
+    btn.disabled = false; syncLockUi();
+  }
+}
+async function disableProtection(){
+  var msg = $('#lkMsg2'), btn = $('#lkDisable');
+  if(!Store.dek) return;
+  if(!disArmed){ disArmed = true; btn.textContent = 'もう一度タップで、保護をやめる'; return; }
+  btn.disabled = true; msg.textContent = '';
+  try{
+    await settled();
+    var names = ['presets', 'prefs'].concat(allMonthKeys()), docs = [];
+    for(var i=0;i<names.length;i++){
+      var o = await readDoc(names[i]);
+      if(o !== null) docs.push({name:names[i], obj:o});
+    }
+    for(var j=0;j<docs.length;j++){ if(!rawSet(docs[j].name, JSON.stringify(docs[j].obj))) throw new Error('save'); }
+    Store.remove('lock');
+    Store.dek = null; Store.protected = false; Store.meta = null;
+    msg.textContent = '保護をやめました。予定とワードは、暗号化されずに保存されます。';
+  }catch(e){
+    msg.textContent = '保護をやめられませんでした。';
+  }finally{
+    disArmed = false; btn.disabled = false; btn.textContent = '保護をやめる'; syncLockUi();
+  }
+}
+
+/* ---------- ロック画面 ---------- */
+var wired = false, unlocking = false;
+function showFatal(){
+  ['#boot', '#lockScr', '#app', '#dock'].forEach(function(id){ $(id).hidden = true; });
+  var d = document.createElement('div');
+  d.className = 'fatal';
+  d.innerHTML = '<p>予定を読み込めませんでした。</p><button class="btn primary" type="button" onclick="location.reload()">もう一度読み込む</button>';
+  document.body.appendChild(d);
+}
+function showLock(auto){
+  ['#boot', '#app', '#dock', '#bkNote', '#note', '#toast'].forEach(function(id){ $(id).hidden = true; });
+  $('#lockScr').hidden = false;
+  $('#lkMsg').textContent = ''; $('#lkPwBox').hidden = true; $('#lkPw').value = '';
+  if(auto) setTimeout(function(){ unlockPasskey(true); }, 60);
+}
+function wipeDom(){
+  ['#grid', '#dayList', '#chips', '#tabs', '#sumList', '#preRows', '#evSug', '#pfSug'].forEach(function(id){ $(id).innerHTML = ''; });
+  ['#dayTitle', '#sumT', '#mTitle', '#yTitle', '#dockLabel', '#bkMsg', '#expMsg', '#bkSum', '#lkMsg2'].forEach(function(id){ $(id).textContent = ''; });
+  ['#evTitle', '#evCat', '#evDate', '#evStart', '#evEnd', '#pfWord', '#pfTitle', '#pfStart', '#pfEnd', '#pfCat',
+   '#bkPw', '#encPw', '#encPw2', '#lkNewPw', '#lkNewPw2'].forEach(function(id){ $(id).value = ''; });
+  document.querySelectorAll('dialog[open]').forEach(function(d){ d.close(); });
+  $('#sum').hidden = true;
+}
+async function lockNow(autoPrompt){
+  if(!Store.protected || !Store.dek) return;
+  try{ await settled(); }catch(e){}
+  Store.dek = null;
+  state.months = {}; state.presets = []; state.loadErr = false; state.cat = '__all'; state.collapsed = false;
+  state.lastBackup = ''; pendingImport = null; pendingEnc = null; replaceArmed = false;
+  wipeDom();
+  showLock(!!autoPrompt);
+}
+async function afterUnlock(){
+  $('#lkPw').value = ''; $('#lkMsg').textContent = '';
+  await loadAndShow();
+}
+async function unlockPasskey(auto){
+  var msg = $('#lkMsg');
+  if(unlocking || Store.dek) return;
+  if(!Store.meta){ msg.textContent = '保護の設定を読み取れません。'; return; }
+  if(!CRYPTO_OK || !navigator.credentials){ msg.textContent = 'この開き方では開けません。https:// のアドレスで開いてください。'; return; }
+  unlocking = true; msg.textContent = '';
+  try{
+    var prf = await passkeyPrf(b64d(Store.meta.cred), b64d(Store.meta.prfSalt));
+    var raw = await aesDec(await kekFromPrf(prf), Store.meta.wrapPrf, aad('yotei-wrap|prf'));
+    Store.dek = await importDek(raw);
+  }catch(e){
+    unlocking = false;
+    if(!(auto && e && e.name === 'NotAllowedError')) msg.textContent = pkErr(e) + ' パスワードで開くこともできます。';
+    return;
+  }
+  unlocking = false;
+  await afterUnlock();
+}
+async function unlockPassword(){
+  var msg = $('#lkMsg'), pw = $('#lkPw').value, w = Store.meta && Store.meta.wrapPw;
+  if(!w || !(w.iter >= 100000 && w.iter <= 2000000)){ msg.textContent = '保護の設定を読み取れません。'; return; }
+  if(!CRYPTO_OK){ msg.textContent = 'この開き方では開けません。https:// のアドレスで開いてください。'; return; }
+  if(!pw){ msg.textContent = 'パスワードを入力してください。'; return; }
+  var btn = $('#lkPwGo'); btn.disabled = true; msg.textContent = '確認しています…';
+  try{
+    var raw = await aesDec(await deriveKey(pw, b64d(w.salt), w.iter), w, aad('yotei-wrap|pw'));
+    Store.dek = await importDek(raw);
+  }catch(e){
+    msg.textContent = 'パスワードが違います。'; btn.disabled = false; return;
+  }
+  btn.disabled = false;
+  await afterUnlock();
+}
+function wireLock(){
+  $('#lkBio').onclick = function(){ unlockPasskey(false); };
+  $('#lkPwToggle').onclick = function(){ $('#lkPwBox').hidden = !$('#lkPwBox').hidden; if(!$('#lkPwBox').hidden) $('#lkPw').focus(); };
+  $('#lkPwGo').onclick = unlockPassword;
+  $('#lkPw').addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); unlockPassword(); } });
+  var hiddenAt = 0;
+  document.addEventListener('visibilitychange', function(){
+    if(!Store.protected) return;
+    if(document.visibilityState === 'hidden'){
+      if(!Store.dek) return;
+      hiddenAt = Date.now();
+      if(state.lockMin === 0) lockNow(false);
+    }else{
+      if(Store.dek){
+        if(hiddenAt && Date.now() - hiddenAt >= state.lockMin * 60000) lockNow(true);
+      }else if(!$('#lockScr').hidden){
+        unlockPasskey(true);
+      }
+      hiddenAt = 0;
+    }
+  });
+}
+
+/* ---------- wire up ---------- */
+function wire(){
+  $('#setBtn').onclick = openSet;
+  $('#lkEnable').onclick = enableProtection;
+  $('#lkDisable').onclick = disableProtection;
+  $('#lkNow').onclick = function(){ $('#setDlg').close(); lockNow(false); };
+  $('#lkDelay').onchange = function(){ state.lockMin = Number(this.value); savePrefs(); };
+  $('#bkOut').onclick = exportBackup;
+  $('#encOn').onchange = syncEncUi;
+  $('#encShow').onchange = function(){ var t = this.checked ? 'text' : 'password'; $('#encPw').type = t; $('#encPw2').type = t; };
+  $('#bkDecrypt').onclick = onDecrypt;
+  $('#bkPw').addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); onDecrypt(); } });
+  $('#bkPassCancel').onclick = function(){ pendingEnc = null; $('#bkPassBox').hidden = true; $('#bkPw').value = ''; $('#bkMsg').textContent = ''; };
+  $('#bkIn').onclick = function(){ $('#bkFile').click(); };
+  $('#bkFile').onchange = onBackupFile;
+  $('#bkMerge').onclick = function(){ applyImport('merge'); };
+  $('#bkReplace').onclick = function(){
+    if(!replaceArmed){ replaceArmed = true; $('#bkReplace').textContent = 'もう一度タップで、いまの予定をすべて置き換えます'; return; }
+    applyImport('replace');
+  };
+  $('#bkCancel').onclick = function(){ pendingImport = null; replaceArmed = false; $('#bkConfirm').hidden = true; };
+  $('#setDlg').addEventListener('close', function(){
+    pendingImport = null; replaceArmed = false; pendingEnc = null;
+    $('#bkPw').value = ''; $('#encPw').value = ''; $('#encPw2').value = ''; $('#lkNewPw').value = ''; $('#lkNewPw2').value = '';
+  });
+  $('#bkNoteGo').onclick = openSet;
+  $('#bkNoteLater').onclick = function(){ bkLater = true; $('#bkNote').hidden = true; };
+  $('#instBtn').onclick = async function(){
+    if(!deferredInstall) return;
+    deferredInstall.prompt();
+    try{ await deferredInstall.userChoice; }catch(e){}
+    deferredInstall = null; $('#instBtn').hidden = true;
+  };
+  $('#prev').onclick = function(){ goMonth(-1); };
+  $('#next').onclick = function(){ goMonth(1); };
+  $('#todayBtn').onclick = function(){ var n=new Date(); state.view={y:n.getFullYear(), m:n.getMonth()}; selectDate(ymd(n)); };
+  $('#grid').addEventListener('click', function(e){
+    var b = e.target.closest('[data-date]'); if(b) selectDate(b.dataset.date);
+  });
+  $('#dayList').addEventListener('click', function(e){
+    var b = e.target.closest('[data-id]'); if(!b) return;
+    var ev = eventsOn(state.sel).filter(function(x){ return x.id === b.dataset.id; })[0];
+    if(ev) openEv(ev);
+  });
+  $('#addOther').onclick = function(){ openEv(null); };
+  $('#fold').onclick = function(){ state.collapsed = !state.collapsed; savePrefs(); renderTabs(); };
+  $('#tabs').addEventListener('click', function(e){ var b = e.target.closest('[data-cat]'); if(!b) return; state.cat = b.dataset.cat; savePrefs(); renderChips(); });
+  $('#chips').addEventListener('click', function(e){
+    if(e.target.closest('#editPresets')){ openPre(); return; }
+    var b = e.target.closest('[data-pid]'); if(!b) return;
+    var p = state.presets.filter(function(x){ return x.id === b.dataset.pid; })[0];
+    if(p) addFromPreset(p, b);
+  });
+  document.querySelectorAll('dialog').forEach(function(dlg){
+    dlg.addEventListener('click', function(e){ if(e.target === dlg) dlg.close(); });
+    dlg.querySelectorAll('[data-close]').forEach(function(b){ b.onclick = function(){ dlg.close(); }; });
+  });
+  $('#evSave').onclick = saveEv;
+  $('#evDel').onclick = deleteEv;
+  $('#preNew').onclick = function(){ showPreForm(null); };
+  $('#pfBack').onclick = showPreList;
+  $('#pfCancel').onclick = showPreList;
+  $('#pfSave').onclick = savePre;
+  $('#pfDel').onclick = delPre;
+  $('#expBtn').onclick = exportCsv;
+  $('#preRows').addEventListener('click', function(e){
+    var ed = e.target.closest('[data-edit]');
+    if(ed){ var p = state.presets.filter(function(x){ return x.id === ed.dataset.edit; })[0]; if(p) showPreForm(p); return; }
+    var up = e.target.closest('[data-up]'); if(up){ movePre(Number(up.dataset.up), -1); return; }
+    var dn = e.target.closest('[data-down]'); if(dn){ movePre(Number(dn.dataset.down), 1); }
+  });
+  if('ResizeObserver' in window){
+    new ResizeObserver(function(){
+      document.documentElement.style.setProperty('--dock-h', $('#dock').offsetHeight + 'px');
+    }).observe($('#dock'));
+  }
+}
+
+/* ---------- start ---------- */
+async function loadAndShow(){
+  var presetsDoc;
+  try{
+    presetsDoc = await Store.get('presets');
+  }catch(e){
+    showFatal(); return false;
+  }
+  state.presets = (presetsDoc && Array.isArray(presetsDoc.items)) ? presetsDoc.items : clone(DEFAULT_PRESETS);
+  state.lockMin = 1;
+  try{
+    var pf = await Store.get('prefs');
+    if(pf){
+      state.collapsed = !!pf.collapsed;
+      if(typeof pf.cat === 'string') state.cat = pf.cat;
+      state.lastBackup = (typeof pf.lastBackup === 'string') ? pf.lastBackup : '';
+      state.lockMin = (pf.lockMin === 0 || pf.lockMin === 1 || pf.lockMin === 5) ? pf.lockMin : 1;
+    }
+  }catch(e){}
+  var now = new Date();
+  state.view = {y:now.getFullYear(), m:now.getMonth()};
+  state.sel = ymd(now);
+  state.months = {}; state.loadErr = false;
+  await ensureMonths();
+  $('#lockScr').hidden = true; $('#boot').hidden = true;
+  $('#app').hidden = false; $('#dock').hidden = false;
+  if(!wired){ wire(); wired = true; }
+  render(); checkBackupNote();
+  return true;
+}
+(async function start(){
+  await initStore();
+  wireLock();
+  if(Store.protected){ showLock(true); }
+  else{ await loadAndShow(); }
+  if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
+})();
+})();
+</script>
+</body>
+</html>
